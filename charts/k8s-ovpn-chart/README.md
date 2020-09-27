@@ -1,6 +1,6 @@
 # k8s-ovpn-chart
 
-![Version: 0.1.4](https://img.shields.io/badge/Version-0.1.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.4](https://img.shields.io/badge/AppVersion-2.4-informational?style=flat-square)
+![Version: 0.1.5](https://img.shields.io/badge/Version-0.1.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.4](https://img.shields.io/badge/AppVersion-2.4-informational?style=flat-square)
 
 Roll your own OpenVPN server
 
@@ -35,6 +35,7 @@ Roll your own OpenVPN server
 | nameOverride | string | `""` | release name override option |
 | nodeSelector | object | `{}` | node labels for pod assignment |
 | resources | object | `{}` | pod resource requests & limits |
+| service.fallback | bool | `false` | Enables protocol fallback |
 | service.port | int | `31304` | OpenVPN port |
 | service.protocol | string | `"TCP"` | OpenVPN protocol |
 | service.type | string | `"NodePort"` | Service type |

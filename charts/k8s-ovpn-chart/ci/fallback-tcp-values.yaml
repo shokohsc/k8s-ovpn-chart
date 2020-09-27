@@ -3,6 +3,7 @@ service:
   protocol: UDP
   port: 1194
   type: ClusterIP
+  fallback: true
 
 automatic:
   enabled: true

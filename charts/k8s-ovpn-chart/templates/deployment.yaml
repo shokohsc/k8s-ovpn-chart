@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "k8s-ovpn-chart.fullname" . }}
+  name: {{ include "k8s-ovpn-chart.fullname" . }}-{{ .Values.service.protocol | lower }}
   labels:
     app.kubernetes.io/name: {{ include "k8s-ovpn-chart.name" . }}
     helm.sh/chart: {{ include "k8s-ovpn-chart.chart" . }}
@@ -23,10 +23,15 @@ spec:
       containers:
         - image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          name: {{ .Chart.Name }}
+          name: "{{ .Chart.Name }}-{{ .Values.service.protocol | lower }}"
+          command:
+            - /usr/local/bin/ovpn_run
+          args:
+            - --proto
+            - {{ .Values.service.protocol | lower }}
           ports:
             - containerPort: 1194
-              name: openvpn
+              name: "openvpn-{{ .Values.service.protocol | lower }}"
               protocol: {{ .Values.service.protocol }}
           securityContext:
             capabilities:
@@ -86,3 +91,99 @@ spec:
           configMap:
             name: ccd0
         {{- end }}
+---
+{{- if .Values.service.fallback }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "k8s-ovpn-chart.fullname" . }}-{{ include "k8s-ovpn-chart.fallbackProtocol" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "k8s-ovpn-chart.name" . }}
+    helm.sh/chart: {{ include "k8s-ovpn-chart.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "k8s-ovpn-chart.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "k8s-ovpn-chart.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          name: "{{ .Chart.Name }}-{{ include "k8s-ovpn-chart.fallbackProtocol" . }}"
+          command:
+            - /usr/local/bin/ovpn_run
+          args:
+            - --proto
+            - {{ include "k8s-ovpn-chart.fallbackProtocol" . }}
+          ports:
+            - containerPort: 1194
+              name: "openvpn-{{ include "k8s-ovpn-chart.fallbackProtocol" . }}"
+              protocol: {{ include "k8s-ovpn-chart.fallbackProtocol" . | upper }}
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          volumeMounts:
+            {{- if .Values.automatic.enabled }}
+            - name: data
+              mountPath: {{ .Values.automatic.persistence.mountPath }}
+            {{- else }}
+            - name: ovpn0-key
+              mountPath: /etc/openvpn/pki/private
+            - name: ovpn0-cert
+              mountPath: /etc/openvpn/pki/issued
+            - name: ovpn0-pki
+              mountPath: /etc/openvpn/pki
+            - name: ovpn0-conf
+              mountPath: /etc/openvpn
+            - name: ccd0
+              mountPath: /etc/openvpn/ccd
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+        {{- if .Values.automatic.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ if .Values.automatic.persistence.existingClaim }}{{ .Values.automatic.persistence.existingClaim }}{{- else }}{{ include "k8s-ovpn-chart.name" . }}{{- end }}
+        {{- else }}
+        - name: ovpn0-key
+          secret:
+            secretName: ovpn0-key
+            defaultMode: 0600
+        - name: ovpn0-cert
+          secret:
+            secretName: ovpn0-cert
+        - name: ovpn0-pki
+          secret:
+            secretName: ovpn0-pki
+            defaultMode: 0600
+        - name: ovpn0-conf
+          configMap:
+            name: ovpn0-conf
+        - name: ccd0
+          configMap:
+            name: ccd0
+        {{- end }}
+{{- end }}
