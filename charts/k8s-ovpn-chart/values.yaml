@@ -18,6 +18,8 @@ service:
   port: 31304
   # service.type -- Service type
   type: NodePort
+  # service.fallback -- Enables protocol fallback
+  fallback: false
 
 # limitTraficToNamespace -- limit network traffic just to OpenVPN namespace
 limitTraficToNamespace: true

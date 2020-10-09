@@ -5,19 +5,20 @@ metadata:
   labels:
     {{- include "k8s-ovpn-chart.labels" . | nindent 4 }}
   annotations:
-    "helm.sh/hook": test-success
+    "helm.sh/hook": "test,post-install"
+    "helm.sh/hook-weight": "20"
 spec:
   containers:
     - name: resolv-conf
       image: busybox
       command: ['cat']
       args: ['/etc/resolv.conf']
-    - name: nc
+    - name: nc-tcp
       image: busybox
       command: ['nc']
-      {{- if eq .Values.service.protocol "UDP" }}
-      args: ['-v', '-z', '-u', '{{ include "k8s-ovpn-chart.fullname" . }}', '{{ .Values.service.port }}']
-      {{- else }}
-      args: ['-v', '-z', '{{ include "k8s-ovpn-chart.fullname" . }}', '{{ .Values.service.port }}']
-      {{- end }}
+      args: ['-v', '-z', '{{ include "k8s-ovpn-chart.fullname" . }}-tcp', '{{ .Values.service.port }}']
+    - name: nc-udp
+      image: busybox
+      command: ['nc']
+      args: ['-v', '-z', '-u', '{{ include "k8s-ovpn-chart.fullname" . }}-udp', '{{ .Values.service.port }}']
   restartPolicy: Never

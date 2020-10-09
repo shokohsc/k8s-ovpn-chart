@@ -67,3 +67,14 @@ but Helm 2.9 and 2.10 does not support it, so we need to implement this if-else 
     {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Return the fallback protocol if option if defined
+*/}}
+{{- define "k8s-ovpn-chart.fallbackProtocol" -}}
+{{- if and .Values.service.fallback (eq .Values.service.protocol "TCP") }}
+{{- printf "udp" }}
+{{- else }}
+{{- printf "tcp" }}
+{{- end }}
+{{- end}}
